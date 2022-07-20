@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Like;
 use App\Models\Post;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -15,9 +17,11 @@ class PostController extends Controller
      */
     public function index()
     {
+        $user = auth()->user();
+
         $posts = Post::all();
 
-        return view('posts.index', compact('posts'));
+        return view('posts.index', compact('posts', 'user'));
     }
 
     /**
@@ -51,6 +55,50 @@ class PostController extends Controller
         );
 
         return redirect('/dashboard');
+    }
+
+    /**
+     * Like the specified resource.
+     *
+     * @param  \App\Models\Post  $post
+     * @return \Illuminate\Http\Response
+     */
+    public function like(Post $post)
+    {
+        $user = auth()->user();
+
+        // Buscar likes dados pelo usuário neste post
+        $numOfLikes = Like::where('user_id', '=', $user->id)
+            ->where('post_id', '=', $post->id)
+            ->count();
+
+        // Se tiver like do usuário neste post
+        if ($numOfLikes > 0) {
+            Like::where('user_id', '=', $user->id)
+                ->where('post_id', '=', $post->id)
+                ->delete();
+
+            return response()->json(
+                [
+                    'success' => true,
+                    'message' => 'Like removido com sucesso',
+                    'like' => false
+                ]
+            );
+        }
+
+        Like::create([
+            'post_id' => $post->id,
+            'user_id' => $user->id
+        ]);
+
+        return response()->json(
+            [
+                'success' => true,
+                'message' => 'Like criado com sucesso',
+                'like' => true
+            ]
+        );
     }
 
     /**
